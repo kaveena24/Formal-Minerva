@@ -1,0 +1,92 @@
+###Multivariate regression
+#re78 (real earnings in 1978) as the dependent variable
+#incorporating at least 6 predictors including treatment status (???treat???)
+mulreg <- glm(formula = lalonde$re78 ~ lalonde$educ + lalonde$re74 + lalonde$re75 + lalonde$black + lalonde$married + lalonde$nodegr + lalonde$treat)
+summary(mulreg)
+
+#checking treatment effect on degree or no degree
+
+mulreg2 <- glm(formula = lalonde$re78 ~ lalonde$educ + lalonde$re74 + lalonde$re75 + lalonde$black + lalonde$married + lalonde$nodegr + lalonde$treat + lalonde$nodegr*lalonde$treat)
+summary(mulreg2)
+
+### Regression tree
+regtree <- rpart(lalonde$re78 ~ lalonde$educ + lalonde$re74 + lalonde$re75 + lalonde$black + lalonde$married + lalonde$nodegr + lalonde$treat)
+plot(regtree, uniform = TRUE, main = "Regression Tree")
+text(regtree, use.n = TRUE, all = TRUE, cex= 0.7)
+
+#predict to obtain predicted counterfactuals
+new.d <- subset(lalonde, treat == 0, select = c(educ, re74, re75, black, married, nodegr, treat))
+pred.results <- predict(regtree, newdata = new.d)
+summary(pred.results)
+
+##treatment higher or lower for nodegr
+regtree2 <- rpart(lalonde$re78 ~ lalonde$nodegr + lalonde$treat)
+plot(regtree2, uniform = TRUE, main = "Regression Tree")
+text(regtree2, use.n = TRUE, all = TRUE, cex= 0.7)
+
+#####
+data(lalonde)
+attach(lalonde)
+
+#Define variables
+Tr <- cbind(treat)
+Y <- cbind(re78)
+X <- cbind(educ, re74, re75, black, married, nodegr)
+
+#The covariates we want to obtain balance on
+BalanceMat <- X
+
+# run the matching algorithm
+matched <- Match(Y = Y, Tr=treat, X=X)
+
+# estimated treatment effect
+summary(matched)
+
+# check if matching obatined comparison group that looks like treated group
+M.Balance <- MatchBalance(treat ~ educ + re74 + re75 + black + married + nodegr, match.out=matched)
+
+#check difference in individuals
+matched$mdata
+
+#run propensity score matching
+glm1 <- glm(Tr ~ X, family=binomial, data=lalonde)
+summary(glm1)
+
+#average treatment effect on treated
+rr  <- Match(Y=Y, Tr=treat, X=glm1$fitted, M=1)
+summary(rr)
+
+#check balance property
+prop.M.Balance <- MatchBalance(treat ~ educ + re74 + re75 + black + married + nodegr, match.out=rr, data = lalonde)
+
+#run genetic matching
+genout <- GenMatch(Tr = treat, X = X, BalanceMatrix = X,  M=1, pop.size=100, max.generations=30, wait.generations=5)
+m.genout <- Match(Y=Y, Tr=treat, X=X, Weight.matrix=genout)
+summary(m.genout)
+
+#determine balance
+gen.M.Balance <- MatchBalance(treat ~ educ + re74 + re75 + black + married + nodegr, match.out = m.genout, nboots=0, data = lalonde)
+
+
+
+
+### Notes ####
+
+treated <- subset(lalonde, treat == 1)
+treated.tree <- rpart(treated$re78 ~ treated$educ + treated$re74 + treated$re75 + treated$black + treated$married + treated$nodegr + treated$treat)
+plot(treated.tree)
+text(treated.tree)
+controlled <- subset(lalonde, treat == 0)
+control.tree <- rpart(controlled$re78 ~ controlled$educ + controlled$re74 + controlled$re75 + controlled$black + controlled$married + controlled$nodegr + controlled$treat)
+plot(control.tree)
+text(control.tree)
+
+
+##Nope not this
+regtree <- rpart(re78 ~ educ + re74 + re75 + black + married + nodegr + treat, data = lalonde, subset = treat==1)
+plot(regtree)
+text(regtree)
+new.d <- subset(lalonde, treat == 0, select = c(educ, re74, re75, black, married, nodegr, treat))
+pred.results <- predict(regtree, newdata = new.d)
+pred.results
+mean((pred.results - new.d)^2)
