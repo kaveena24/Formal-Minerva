@@ -1,0 +1,60 @@
+# Start with a clean slate???remove all objects from working memory
+
+rm(list=ls())
+
+# Install the "arm" package and load the library
+
+install.packages("arm")
+
+library(arm)
+
+# Load the data that you already downloaded from http://tinyurl.com/z5ygmch
+
+# On my computer, I type:
+load("/Users/kaveenamaniam/Downloads/haha.RData")
+# because the data file is in the downloads folder on my laptop
+
+# But on your computer you will have to enter your own location.
+
+# Now observe what data you now have in working memory
+
+ls() # you should see three variables
+
+# RUN THE REGRESSION
+
+lm.4 <- lm (post.test ~ treatment + pre.test + I(treatment*pre.test))
+
+display (lm.4) # the regression results
+
+# APPLY THE "SIM" FUNCTION TO THE REGRESSION RESULT 
+# TO SIMULATE THE UNCERTAINTY ABOUT REGRESSION COEFFICIENTS
+
+lm.4.sim <- sim (lm.4)
+coef(lm.4.sim) # explore the simulated coefficients
+
+#What is the average coefficient value for the simulated results in column 2? Column 4? 
+coefficient_lm.4.sim <- as.data.frame(coef(lm.4.sim))
+mean(coefficient_lm.4.sim$treatment)
+mean(coefficient_lm.4.sim$`I(treatment * pre.test)`)
+
+#to see your new dataframe
+View(coefficient_lm.4.sim)
+
+#Using the simulated coefficients in columns 2 and 4
+#estimate the range of treatment effects for a student with a pre.test score of 80. 
+#create new coloum treatment effect
+
+coefficient_lm.4.sim$treatmenteffect <- coefficient_lm.4.sim$treatment + coefficient_lm.4.sim$`I(treatment * pre.test)`*80
+summary(coefficient_lm.4.sim)
+#range would just be max - min for treatment effect
+
+# All these regression coefficients are possible under this model
+# Note that columns 2 and 4 are the the coefficients for the treatment indicator and interaction term
+
+#What is the expected value of the treatment effect for such a student
+mean(coefficient_lm.4.sim$treatment)
+
+#What is the 95% confidence interval of the treatment effect for a student with a pre.test score of 80?
+quantile(coefficient_lm.4.sim$treatmenteffect, c(0.025, 0.975))
+summary((coefficient_lm.4.sim$treatmenteffect))
+
