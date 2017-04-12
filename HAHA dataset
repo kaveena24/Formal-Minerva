@@ -52,7 +52,7 @@ summary(coefficient_lm.4.sim)
 # Note that columns 2 and 4 are the the coefficients for the treatment indicator and interaction term
 
 #What is the expected value of the treatment effect for such a student
-mean(coefficient_lm.4.sim$treatment)
+mean(coefficient_lm.4.sim$treatmenteffect)
 
 #What is the 95% confidence interval of the treatment effect for a student with a pre.test score of 80?
 quantile(coefficient_lm.4.sim$treatmenteffect, c(0.025, 0.975))
